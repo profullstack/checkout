@@ -147,7 +147,31 @@ Grant what was bought from `order.option` and `order.quantity`, to the `account_
 - `pay()` that throws shows "We could not open the payment page. Nothing was charged." and calls `onError`.
 - A code that takes the total to zero calls `free(order)` instead of `pay(order)` when you provide it.
 
+## Without a framework
+
+A plain Node `http` server, or any site without a bundler:
+
+```js
+import { assets } from '@profullstack/checkout/assets'
+import { nodeHandler } from '@profullstack/checkout/node'
+
+const { css, js } = assets() // { body, type, hash } each
+const handle = nodeHandler(checkout)
+
+// GET  /assets/checkout.css  -> css.body with content-type css.type
+// GET  /assets/checkout.js   -> js.body  with content-type js.type
+// POST /checkout             -> return handle(req, res)   (pass { body } if you already read it)
+// GET  /checkout             -> checkout.html({ query, account }) inside your page, with
+//   <link rel="stylesheet" href="/assets/checkout.css?v=${css.hash}">
+//   <script type="module" src="/assets/checkout.js?v=${js.hash}"></script>
+```
+
+Hono, Bun.serve and other web-standard servers use `checkout.POST(request)` directly; `assets()` works there too.
+
 ## Smaller options
+
+- `signIn` may be a function `(nextPath) => url` for sites with their own sign-in scheme, and `signInParam: 'return_to'` renames the return parameter.
+- `strictOrigin: true` also refuses a post with no `Origin` header or `Origin: null`.
 
 - `default: true` on an option preselects it without the "Most popular" badge (`popular: true` does both).
 - `display: 'total'` on a plan leads with the term total (`USD 15.00 / 12 months`, then "USD 1.25 a month") for sites that quote the whole term.

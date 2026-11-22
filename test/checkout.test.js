@@ -299,6 +299,51 @@ test('notes, a closed state, and the site\'s own errors from pay()', async () =>
   assert.equal((await other.handle({ option: 'year', audience: 'personal', email: 'a@b.co' })).error, 'payment_unavailable')
 })
 
+test('signIn as a function or with its own return parameter; strictOrigin refuses a missing Origin', async () => {
+  const fn = plans({ requireAccount: true, page: '/checkout', signIn: (next) => `/oauth/start?return_to=${encodeURIComponent(next)}&via=checkout` })
+  assert.equal(fn.signInUrl('plan=month'), '/oauth/start?return_to=%2Fcheckout%3Foption%3Dmonth&via=checkout')
+  const param = plans({ requireAccount: true, page: '/checkout', signIn: '/login', signInParam: 'return_to' })
+  assert.equal(param.signInUrl(''), '/login?return_to=%2Fcheckout')
+  const res = await param.POST(post({ option: 'year' }, { referer: 'https://example.com/checkout' }))
+  assert.equal(res.headers.get('location'), '/login?return_to=%2Fcheckout%3Foption%3Dyear')
+
+  const strict = plans({ strictOrigin: true })
+  assert.equal((await strict.POST(post({ option: 'year', email: 'a@b.co' }, { accept: 'application/json' }))).status, 403)
+  assert.equal((await strict.POST(post({ option: 'year', email: 'a@b.co' }, { origin: 'null', accept: 'application/json' }))).status, 403)
+  assert.equal((await strict.POST(post({ option: 'year', email: 'a@b.co' }, { origin: 'https://example.com' }))).status, 303)
+})
+
+test('the Node adapter posts a form through and writes the redirect', async () => {
+  const { createServer } = await import('node:http')
+  const { nodeHandler } = await import('../src/node.js')
+  const handle = nodeHandler(plans())
+  const server = createServer((req, res) => handle(req, res))
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const base = `http://127.0.0.1:${server.address().port}`
+  try {
+    const ok = await fetch(`${base}/checkout`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'option=month&audience=personal&email=a%40b.co' })
+    assert.equal(ok.status, 303)
+    assert.equal(ok.headers.get('location'), 'https://pay.test/3000')
+    const cross = await fetch(`${base}/checkout`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', origin: 'https://evil.test', accept: 'application/json' }, body: 'option=month&email=a%40b.co' })
+    assert.equal(cross.status, 403)
+    const big = await fetch(`${base}/checkout`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `option=month&pad=${'x'.repeat(70 * 1024)}` })
+    assert.equal(big.status, 413)
+  } finally {
+    server.close()
+  }
+})
+
+test('assets() hands back the stylesheet and the bundle with a type and a hash', async () => {
+  const { assets } = await import('../src/assets.js')
+  const { css: sheet, js } = assets()
+  assert.equal(sheet.body.toString(), css)
+  assert.match(sheet.type, /^text\/css/)
+  assert.match(js.type, /^text\/javascript/)
+  assert.match(js.body.toString(), /mountCheckout/)
+  assert.match(sheet.hash, /^[0-9a-f]{12}$/)
+  assert.equal(assets(), assets())
+})
+
 test('a pack named for its price shows the price once', () => {
   const c = createCheckout({
     site: 'x',

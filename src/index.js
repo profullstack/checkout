@@ -16,13 +16,13 @@ function header(request, name) {
 }
 
 /** A form may only be posted from the site it is on. */
-function sameSite(request, extra = []) {
+function sameSite(request, extra = [], strict = false) {
   // Browsers say outright when a request comes from another site.
   if (header(request, 'sec-fetch-site') === 'cross-site') return false
   const origin = header(request, 'origin')
   // No Origin header (curl, old browsers) and Origin: null (a page with
   // referrerpolicy=no-referrer posts that) say nothing either way, so they pass.
-  if (!origin || origin === 'null') return true
+  if (!origin || origin === 'null') return !strict
   let host
   try {
     host = new URL(origin).host
@@ -147,6 +147,14 @@ export function createCheckout(config) {
     }
   }
 
+  // signIn is a URL (the return path goes in ?next=, or signInParam) or a
+  // function (nextPath) => url for sites with their own scheme.
+  function signInTo(next) {
+    if (typeof config.signIn === 'function') return String(config.signIn(next))
+    const param = config.signInParam || 'next'
+    return `${config.signIn}${config.signIn.includes('?') ? '&' : '?'}${param}=${encodeURIComponent(next)}`
+  }
+
   /**
    * Where a signed-out visitor goes to sign in and come back to this page with
    * their selection: the same URL a signed-out POST redirects to. For the
@@ -161,7 +169,7 @@ export function createCheckout(config) {
       if (value) qs.set(key, String(value).slice(0, 64))
     }
     const next = `${config.page || '/'}${qs.size ? `?${qs}` : ''}`
-    return `${config.signIn}${config.signIn.includes('?') ? '&' : '?'}next=${encodeURIComponent(next)}`
+    return signInTo(next)
   }
 
   /** The route handler: `export const POST = checkout.POST`. */
@@ -178,7 +186,7 @@ export function createCheckout(config) {
     const fail = (error, status = 400) => {
       if (error === 'sign_in_required' && config.signIn) {
         const next = backTo(request, config.page, { option: f.option, quantity: f.quantity, audience: f.audience, amount: f.amount, code: f.code, source: f.source })
-        const signIn = `${config.signIn}${config.signIn.includes('?') ? '&' : '?'}next=${encodeURIComponent(next)}`
+        const signIn = signInTo(next)
         return wantsJson ? json({ ok: false, error, message: cfg.errors[error], signIn }, 401) : redirect(signIn)
       }
       if (wantsJson) return json({ ok: false, error, message: cfg.errors[error] }, status)
@@ -188,7 +196,7 @@ export function createCheckout(config) {
 
     // siteUrl is the public address: behind a proxy the Host header may be an
     // internal one, and the browser's Origin is the public one.
-    if (!sameSite(request, [...(config.origins || []), ...(config.siteUrl ? [config.siteUrl] : [])])) return fail('bad_origin', 403)
+    if (!sameSite(request, [...(config.origins || []), ...(config.siteUrl ? [config.siteUrl] : [])], Boolean(config.strictOrigin))) return fail('bad_origin', 403)
     const result = await handle(f, { request })
     if (!result.ok) return fail(result.error, result.error === 'payment_unavailable' ? 502 : Object.hasOwn(ERRORS, result.error) ? 400 : 409)
     if (result.quote) return json({ ok: true, quote: result.quote })

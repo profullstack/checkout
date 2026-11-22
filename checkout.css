@@ -66,6 +66,12 @@
   --pfc-error: #fca5a5;
   --pfc-panel-bg: #0b1020;
 }
+/* Site-wide element rules (label { margin }, fieldset { margin }) stop here. */
+.pfc label,
+.pfc fieldset,
+.pfc legend {
+  margin: 0;
+}
 .pfc *,
 .pfc *::before,
 .pfc *::after {
