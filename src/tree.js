@@ -50,7 +50,7 @@ export function tree(v) {
         : h(
             'span',
             { class: 'pfc-option-price' },
-            h('span', { class: 'pfc-option-amount' }, o.price),
+            o.price ? h('span', { class: 'pfc-option-amount' }, o.price) : null,
             o.unit ? h('span', { class: 'pfc-option-unit' }, o.unit) : null,
             o.gets ? h('span', { class: 'pfc-option-gets' }, o.gets) : null,
           ),

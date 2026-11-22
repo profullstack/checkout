@@ -17,6 +17,8 @@ function header(request, name) {
 
 /** A form may only be posted from the site it is on. */
 function sameSite(request, extra = []) {
+  // Browsers say outright when a request comes from another site.
+  if (header(request, 'sec-fetch-site') === 'cross-site') return false
   const origin = header(request, 'origin')
   // No Origin header (curl, old browsers) and Origin: null (a page with
   // referrerpolicy=no-referrer posts that) say nothing either way, so they pass.
@@ -164,7 +166,9 @@ export function createCheckout(config) {
       return redirect(backTo(request, config.page, { option: f.option, quantity: f.quantity, audience: f.audience, amount: f.amount, code: error === 'invalid_code' ? '' : f.code, source: f.source, error }))
     }
 
-    if (!sameSite(request, config.origins)) return fail('bad_origin', 403)
+    // siteUrl is the public address: behind a proxy the Host header may be an
+    // internal one, and the browser's Origin is the public one.
+    if (!sameSite(request, [...(config.origins || []), ...(config.siteUrl ? [config.siteUrl] : [])])) return fail('bad_origin', 403)
     const result = await handle(f, { request })
     if (!result.ok) return fail(result.error, result.error === 'payment_unavailable' ? 502 : 400)
     if (result.quote) return json({ ok: true, quote: result.quote })

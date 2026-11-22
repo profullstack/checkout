@@ -119,6 +119,8 @@ export interface CheckoutConfig {
   /** Refuse guests. With signIn, they are sent there and come back. */
   requireAccount?: boolean
   signIn?: string
+  /** The site's public URL. Set it behind a proxy, where Host is internal and the browser's Origin is not. */
+  siteUrl?: string
   /** Extra origins allowed to post the form. */
   origins?: string[]
   pay: Pay

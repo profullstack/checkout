@@ -1,5 +1,7 @@
-/* @profullstack/checkout. Theme it with the --pfc-* properties on .pfc or above. */
-.pfc {
+/* @profullstack/checkout. Theme it by setting --pfc-* properties in a plain
+   `.pfc { }` rule. The defaults sit in :where() (no specificity), so that rule
+   wins in light and dark alike. */
+:where(.pfc) {
   --pfc-accent: #4f46e5;
   --pfc-accent-fg: #ffffff;
   --pfc-fg: #1f2937;
@@ -16,13 +18,18 @@
   --pfc-panel-fg: #f9fafb;
   --pfc-panel-muted: #9ca3af;
   --pfc-radius: 0.5rem;
+  --pfc-title-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+}
+.pfc {
   box-sizing: border-box;
   display: grid;
   gap: 2.5rem;
   justify-items: center;
   align-items: center;
   max-width: 68rem;
-  margin: 0 auto;
+  /* Inline only: the page decides the space above and below. */
+  margin-left: auto;
+  margin-right: auto;
   padding: 2rem 1rem;
   color: var(--pfc-fg);
   background: var(--pfc-bg);
@@ -30,7 +37,7 @@
   line-height: 1.45;
 }
 @media (prefers-color-scheme: dark) {
-  .pfc:not([data-theme="light"]) {
+  :where(.pfc:not([data-theme="light"])) {
     --pfc-accent: #818cf8;
     --pfc-accent-fg: #0b1020;
     --pfc-fg: #f3f4f6;
@@ -77,7 +84,7 @@
 .pfc-title {
   margin: 0;
   font-size: 2rem;
-  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+  font-size: var(--pfc-title-size);
   line-height: 1.15;
   text-wrap: balance;
 }

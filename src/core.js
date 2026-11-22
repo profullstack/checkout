@@ -289,7 +289,8 @@ export function view(cfg, { query, account = null, action = '', error = '' } = {
       name: o.name,
       detail: o.detail,
       kind: o.kind,
-      price: money(o.unitCents, { currency: cfg.currency }),
+      // A pack named "$25" already says its price; do not print it twice.
+      price: o.kind === 'once' && o.name.trim() === money(o.unitCents, { currency: cfg.currency, short: true }) ? '' : money(o.unitCents, { currency: cfg.currency }),
       unit: o.kind === 'plan' ? '/mo' : '',
       chargeCents: o.chargeCents,
       months: o.months,
