@@ -171,6 +171,8 @@ Hono, Bun.serve and other web-standard servers use `checkout.POST(request)` dire
 ## Smaller options
 
 - `signIn` may be a function `(nextPath) => url` for sites with their own sign-in scheme, and `signInParam: 'return_to'` renames the return parameter.
+- `processor: false` drops the payment line under the button; `custom: { default: null }` leaves the typed amount empty; `--pfc-pad` sets the section padding (use `0` inside an already padded column).
+- A `pay()` refusal that names one of your `errors` is not logged as a failure; real failures still call `onError` or log.
 - `strictOrigin: true` also refuses a post with no `Origin` header or `Origin: null`.
 
 - `default: true` on an option preselects it without the "Most popular" badge (`popular: true` does both).

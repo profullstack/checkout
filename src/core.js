@@ -105,7 +105,9 @@ export function normalize(config) {
   if (config.custom) {
     const minCents = toCents(config.custom.min ?? 1)
     const maxCents = Math.max(minCents, toCents(config.custom.max ?? 10000))
-    const defaultCents = Math.min(maxCents, Math.max(minCents, toCents(config.custom.default ?? config.custom.min ?? 1)))
+    // default: null leaves the field empty until the buyer types.
+    const blank = config.custom.default === null
+    const defaultCents = blank ? minCents : Math.min(maxCents, Math.max(minCents, toCents(config.custom.default ?? config.custom.min ?? 1)))
     custom = {
       id: CUSTOM,
       name: String(config.custom.label || 'Other amount'),
@@ -113,6 +115,7 @@ export function normalize(config) {
       minCents,
       maxCents,
       defaultCents,
+      blank,
     }
   }
 
@@ -151,7 +154,8 @@ export function normalize(config) {
     discountLabel: String(config.discountLabel || 'Have a discount code?'),
     cta: String(config.cta || 'Continue to payment'),
     guarantee: config.guarantee ? String(config.guarantee) : '',
-    processor: String(config.processor ?? 'Pay with crypto or PayPal. Payment is processed by CoinPay.'),
+    // processor: false drops the line (for a site where "or PayPal" is not always true).
+    processor: config.processor === false ? '' : String(config.processor ?? 'Pay with crypto or PayPal. Payment is processed by CoinPay.'),
     compare,
     requireAccount: Boolean(config.requireAccount),
     theme: config.theme === 'light' || config.theme === 'dark' ? config.theme : '',
@@ -328,7 +332,9 @@ export function view(cfg, { query, account = null, action = '', error = '', note
         ...o.badges.map((text) => ({ tone: 'note', text })),
       ],
     })),
-    custom: cfg.custom ? { ...cfg.custom, amount: ((sel.amountCents ?? cfg.custom.defaultCents) / 100).toFixed(2).replace(/\.00$/, '') } : null,
+    custom: cfg.custom
+      ? { ...cfg.custom, amount: sel.amountCents == null && cfg.custom.blank ? '' : ((sel.amountCents ?? cfg.custom.defaultCents) / 100).toFixed(2).replace(/\.00$/, '') }
+      : null,
     selected: sel.option.id,
     hasDiscount: cfg.hasDiscount,
     discountLabel: cfg.discountLabel,

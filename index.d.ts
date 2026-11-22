@@ -65,12 +65,8 @@ export interface Compare {
   footnote?: string
 }
 
-export interface Account {
-  id: string
-  email: string
-  guest?: boolean
-  [key: string]: unknown
-}
+/** Any object with an id and an email; extra keys ride along on order.account. */
+export type Account = { id: string; email: string; guest?: boolean } & Record<string, unknown>
 
 export interface Discount {
   percent?: number
@@ -118,16 +114,17 @@ export interface CheckoutConfig {
   /** Alias of options. */
   plans?: Option[]
   /** Let the buyer type an amount (top-ups). */
-  custom?: { min?: Money; max?: Money; default?: Money; label?: string; detail?: string }
+  custom?: { min?: Money; max?: Money; /** null leaves the field empty. */ default?: Money | null; label?: string; detail?: string }
   discountLabel?: string
   discount?: (code: string, ctx: { option: unknown; quantity: number; audience: string }) => Promise<Discount | null> | Discount | null
   cta?: string
   /** Only say what is true: there is no default guarantee line. */
   guarantee?: string
-  processor?: string
+  /** The payment line under the button. false drops it. */
+  processor?: string | false
   compare?: Compare
   /** Who is signed in. Return null for a guest. */
-  account?: (request: Request | null) => Promise<Account | null> | Account | null
+  account?: (request: Request | null) => Promise<{ id: string; email: string } | null> | { id: string; email: string } | null
   /** Refuse guests. With signIn, they are sent there and come back. */
   requireAccount?: boolean
   /** The sign-in URL (the return path is added as ?next=), or a function (nextPath) => url. */
