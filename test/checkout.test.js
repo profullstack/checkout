@@ -217,6 +217,41 @@ test('React renders the same page as html()', () => {
   assert.match(markup, /<option value="team"[^>]*selected/)
 })
 
+test('a pack named for its price shows the price once', () => {
+  const c = createCheckout({
+    site: 'x',
+    options: [
+      { id: '25', name: '$25', price: 25, gets: 'about 5,000 chats' },
+      { id: 'pro', name: 'Starter pack', price: 25 },
+    ],
+    pay: async () => ({ url: '/p' }),
+  })
+  const html = c.html()
+  assert.equal(html.match(/USD 25\.00/g).length, 2) // the Starter pack card and the total
+  assert.match(html, /about 5,000 chats/)
+})
+
+test('behind a proxy: siteUrl names the public origin, and cross-site fetches are refused', async () => {
+  const internal = (headers) =>
+    new Request('http://10.0.0.5:3000/api/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', host: '10.0.0.5:3000', ...headers },
+      body: 'option=year&email=a%40b.co',
+    })
+  const without = await plans().POST(internal({ origin: 'https://example.com', accept: 'application/json' }))
+  assert.equal(without.status, 403)
+  const withUrl = await plans({ siteUrl: 'https://example.com' }).POST(internal({ origin: 'https://example.com' }))
+  assert.equal(withUrl.status, 303)
+  const cross = await plans({ siteUrl: 'https://example.com' }).POST(internal({ 'sec-fetch-site': 'cross-site', accept: 'application/json' }))
+  assert.equal(cross.status, 403)
+})
+
+test('theme defaults carry no specificity, so a plain .pfc rule wins in dark mode too', () => {
+  assert.match(css, /:where\(\.pfc\) \{\n {2}--pfc-accent/)
+  assert.match(css, /:where\(\.pfc:not\(\[data-theme="light"\]\)\) \{/)
+  assert.doesNotMatch(css, /margin: 0 auto/)
+})
+
 test('src/css.js matches checkout.css', () => {
   assert.equal(css, readFileSync(new URL('../checkout.css', import.meta.url), 'utf8'))
 })

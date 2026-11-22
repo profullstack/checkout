@@ -147,9 +147,21 @@ Grant what was bought from `order.option` and `order.quantity`, to the `account_
 - `pay()` that throws shows "We could not open the payment page. Nothing was charged." and calls `onError`.
 - A code that takes the total to zero calls `free(order)` instead of `pay(order)` when you provide it.
 
+## Accounts and the same-site check
+
+- `account(request)` returns `{ id, email }` for the signed-in buyer, or null. `email` may be `''` when you do not keep one (the page then shows no "Buying as" line), and any extra keys you return ride along on `order.account` for your `pay()`.
+- With `requireAccount` and `signIn`, a signed-out post is sent to `signIn?next=<the checkout page with the selection>`. The page path comes from the Referer, falling back to `page`.
+- The form may only be posted from its own site. The check compares the browser's `Origin` with the request's Host (and `X-Forwarded-Host`), and refuses `Sec-Fetch-Site: cross-site`. Behind a proxy that rewrites Host, set `siteUrl: 'https://example.com'`. A request with no `Origin` at all (curl) passes this check, so keep your own session cookie `SameSite=Lax` or stricter.
+
 ## Theme
 
-Set any of these on `.pfc` or an ancestor: `--pfc-accent`, `--pfc-accent-fg`, `--pfc-fg`, `--pfc-muted`, `--pfc-card`, `--pfc-border`, `--pfc-panel-bg`, `--pfc-panel-fg`, `--pfc-radius`. It follows `prefers-color-scheme`; `data-theme="light"` on `.pfc` pins it light.
+Set any of these in a plain `.pfc { }` rule (the defaults have no specificity, so yours win in light and dark):
+
+`--pfc-accent`, `--pfc-accent-fg`, `--pfc-fg`, `--pfc-muted`, `--pfc-card`, `--pfc-border`, `--pfc-error`, `--pfc-save-bg`, `--pfc-save-fg`, `--pfc-popular-bg`, `--pfc-popular-fg`, `--pfc-panel-bg`, `--pfc-panel-fg`, `--pfc-panel-muted`, `--pfc-radius`, `--pfc-title-size`.
+
+Without a theme it follows `prefers-color-scheme`; `data-theme="light"` on `.pfc` pins it light. `.pfc` sets no top or bottom margin: the page decides its spacing.
+
+A one-off option whose name is its price (`name: '$25', price: 25`) shows the price once.
 
 ## Try it
 
