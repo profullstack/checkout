@@ -138,11 +138,12 @@ export function createCheckout(config) {
       if (!url) throw new Error('pay() returned no url')
       return { ok: true, url, order, id: out && out.id }
     } catch (error) {
-      if (typeof config.onError === 'function') config.onError(error, order)
-      else console.error(`[checkout] ${cfg.site || 'site'}: pay() failed: ${error instanceof Error ? error.message : error}`)
       // pay() may throw { code } naming one of the site's own `errors`
       // (rate limited, sales paused); anything else is the generic message.
       const code = error && typeof error.code === 'string' && Object.hasOwn(config.errors || {}, error.code) && Object.hasOwn(cfg.errors, error.code) ? error.code : 'payment_unavailable'
+      // A refusal the site named is expected, not a fault: only real failures are logged.
+      if (typeof config.onError === 'function') config.onError(error, order)
+      else if (code === 'payment_unavailable') console.error(`[checkout] ${cfg.site || 'site'}: pay() failed: ${error instanceof Error ? error.message : error}`)
       return { ok: false, error: code }
     }
   }

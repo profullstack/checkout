@@ -30,7 +30,7 @@
   /* Inline only: the page decides the space above and below. */
   margin-left: auto;
   margin-right: auto;
-  padding: 2rem 1rem;
+  padding: var(--pfc-pad, 2rem 1rem);
   color: var(--pfc-fg);
   background: var(--pfc-bg);
   font: inherit;
@@ -204,6 +204,10 @@
   gap: 0.4rem;
 }
 .pfc-badge {
+  /* Sits on the card's border: an opaque layer underneath keeps a translucent
+     badge colour from showing the border through it. */
+  position: relative;
+  box-shadow: 0 0 0 2px var(--pfc-card);
   padding: 0.05rem 0.5rem;
   border-radius: 999px;
   background: var(--pfc-popular-bg);

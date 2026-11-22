@@ -344,6 +344,36 @@ test('assets() hands back the stylesheet and the bundle with a type and a hash',
   assert.equal(assets(), assets())
 })
 
+test('processor false, an empty custom amount, and quiet logging for the site\'s own refusals', async () => {
+  const logged = []
+  const original = console.error
+  console.error = (...args) => logged.push(args.join(' '))
+  try {
+    const c = createCheckout({
+      site: 'x',
+      processor: false,
+      options: [{ id: '10', name: '$10', price: 10 }],
+      custom: { min: 5, max: 500, default: null },
+      errors: { rate_limited: 'Slow down.' },
+      pay: async (o) => {
+        if (o.totalCents === 1000) throw Object.assign(new Error('429'), { code: 'rate_limited' })
+        throw new Error('boom')
+      },
+    })
+    const html = c.html()
+    assert.doesNotMatch(html, /pfc-assure/)
+    assert.match(html, /name="amount" value=""/)
+    assert.equal((await c.handle({ option: 'custom', amount: '', email: 'a@b.co' })).error, 'invalid_amount')
+    assert.equal((await c.handle({ option: '10', email: 'a@b.co' })).error, 'rate_limited')
+    assert.equal(logged.length, 0) // a named refusal is not a fault
+    assert.equal((await c.handle({ option: 'custom', amount: '7', email: 'a@b.co' })).error, 'payment_unavailable')
+    assert.equal(logged.length, 1)
+  } finally {
+    console.error = original
+  }
+  assert.match(css, /padding: var\(--pfc-pad, 2rem 1rem\)/)
+})
+
 test('a pack named for its price shows the price once', () => {
   const c = createCheckout({
     site: 'x',
