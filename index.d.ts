@@ -28,6 +28,10 @@ export interface PlanOption {
   months?: number
   detail?: string
   popular?: boolean
+  /** Preselect this option without the "Most popular" badge. */
+  default?: boolean
+  /** 'total' leads with the term total ("USD 15.00 / 12 months") instead of the per-month price. */
+  display?: 'monthly' | 'total'
   badges?: string[]
   gets?: string
   meta?: Record<string, unknown>
@@ -40,6 +44,8 @@ export interface OnceOption {
   price: Money
   detail?: string
   popular?: boolean
+  /** Preselect this option without the "Most popular" badge. */
+  default?: boolean
   badges?: string[]
   /** What the buyer gets, shown under the price ("2,500 credits"). */
   gets?: string
@@ -130,6 +136,10 @@ export interface CheckoutConfig {
   /** Extra origins allowed to post the form. */
   origins?: string[]
   pay: Pay
+  /** Pin the colour scheme instead of following the visitor's. */
+  theme?: 'light' | 'dark'
+  /** Your own error messages by code (a-z, 0-9, _). pay() throws { code } to show one. */
+  errors?: Record<string, string>
   /** Called instead of pay when a code takes the total to zero. */
   free?: Pay
   onError?: (error: unknown, order: Order) => void
@@ -149,7 +159,7 @@ export interface Quote {
 
 export type ErrorCode = 'invalid_option' | 'invalid_quantity' | 'invalid_amount' | 'invalid_code' | 'email_required' | 'sign_in_required' | 'payment_unavailable' | 'bad_origin'
 
-export type HandleResult = { ok: true; url: string; order: Order; id?: string } | { ok: true; quote: Quote } | { ok: false; error: ErrorCode }
+export type HandleResult = { ok: true; url: string; order: Order; id?: string } | { ok: true; quote: Quote } | { ok: false; error: ErrorCode | string }
 
 export type FieldsInput = string | URLSearchParams | FormData | Record<string, unknown> | null | undefined
 
@@ -159,9 +169,14 @@ export type CheckoutView = Record<string, unknown>
 export interface ViewOptions {
   /** The page's query: prefills option/plan, quantity, audience/manage, amount, code, email, source, error. */
   query?: FieldsInput
-  account?: { email?: string } | null
+  /** Who is signed in. Only the email is shown; passing your whole account object is fine. */
+  account?: { email?: string; [key: string]: unknown } | null
   action?: string
-  error?: ErrorCode | ''
+  error?: ErrorCode | string
+  /** Per-request lines under the button (a balance, a reminder). Plain text. */
+  notes?: string[]
+  /** Sales are paused: this message shows and the button is disabled. */
+  closed?: string
 }
 
 export interface Checkout {
@@ -170,6 +185,8 @@ export interface Checkout {
   view(opts?: ViewOptions): CheckoutView
   html(opts?: ViewOptions): string
   quote(input: FieldsInput): Promise<HandleResult>
+  /** The sign-in URL that returns to this page with the selection, for the page's GET. Null without `signIn`. */
+  signInUrl(query?: FieldsInput): string | null
   handle(input: FieldsInput, ctx?: { request?: Request | null; account?: Account | null; intent?: 'quote' | '' }): Promise<HandleResult>
   POST(request: Request): Promise<Response>
 }

@@ -81,6 +81,10 @@ export function normalize(config) {
       gets: o.gets != null ? String(o.gets) : '',
       badges: (o.badges || []).map(String),
       popular: Boolean(o.popular),
+      // Preselected without the "Most popular" badge.
+      default: Boolean(o.default),
+      // 'total' leads with the term total ("USD 15.00 / 12 months") instead of the per-month price.
+      display: o.display === 'total' ? 'total' : 'monthly',
       meta: o.meta && typeof o.meta === 'object' ? o.meta : undefined,
     }
   })
@@ -92,7 +96,8 @@ export function normalize(config) {
   for (const o of options) {
     o.savePercent = o.kind === 'plan' && dearest > perMonth(o) ? Math.round((1 - perMonth(o) / dearest) * 100) : 0
     if (o.kind === 'plan' && !o.detail) {
-      o.detail = o.months === 1 ? 'Billed for 1 month' : `Billed ${money(o.chargeCents, { currency })} for ${o.months} months`
+      if (o.display === 'total') o.detail = o.months === 1 ? '' : `${money(o.unitCents, { currency })} a month`
+      else o.detail = o.months === 1 ? 'Billed for 1 month' : `Billed ${money(o.chargeCents, { currency })} for ${o.months} months`
     }
   }
 
@@ -148,6 +153,10 @@ export function normalize(config) {
     guarantee: config.guarantee ? String(config.guarantee) : '',
     processor: String(config.processor ?? 'Pay with crypto or PayPal. Payment is processed by CoinPay.'),
     compare,
+    requireAccount: Boolean(config.requireAccount),
+    theme: config.theme === 'light' || config.theme === 'dark' ? config.theme : '',
+    // The site's own error messages, by code. pay() throws { code } to use one.
+    errors: { ...ERRORS, ...Object.fromEntries(Object.entries(config.errors || {}).filter(([k]) => /^[a-z0-9_]{1,40}$/.test(k)).map(([k, v]) => [k, String(v)])) },
   }
 }
 
@@ -184,7 +193,7 @@ export function select(cfg, input, { strict = false } = {}) {
   let option = cfg.options.find((o) => o.id === wanted) || (wanted === CUSTOM && cfg.custom) || null
   if (!option) {
     if (strict) return fail('invalid_option')
-    option = cfg.options.find((o) => o.popular) || cfg.options[0] || cfg.custom
+    option = cfg.options.find((o) => o.default) || cfg.options.find((o) => o.popular) || cfg.options[0] || cfg.custom
   }
 
   const wantedAudience = f.audience ?? f.manage
@@ -266,11 +275,12 @@ export function isEmail(value) {
  * Everything a renderer needs, as plain JSON: safe to pass from a server
  * component to a client one, or to embed in the page for the browser script.
  */
-export function view(cfg, { query, account = null, action = '', error = '' } = {}) {
+export function view(cfg, { query, account = null, action = '', error = '', notes = [], closed = '' } = {}) {
   const f = fields(query)
   const sel = select(cfg, f)
   const q = quote(cfg, sel)
   const code = error || f.error || ''
+  const known = Object.hasOwn(cfg.errors, code)
   return {
     site: cfg.site,
     action,
@@ -278,7 +288,14 @@ export function view(cfg, { query, account = null, action = '', error = '' } = {
     title: cfg.title,
     subtitle: cfg.subtitle,
     logo: cfg.logo,
-    error: ERRORS[code] ? { code, message: ERRORS[code] } : null,
+    theme: cfg.theme,
+    error: known ? { code, message: cfg.errors[code] } : null,
+    // Per-request lines under the button: a balance, a reminder. Plain text.
+    notes: (Array.isArray(notes) ? notes : [notes]).filter(Boolean).map(String),
+    // Sales paused: the message shows and the button is off.
+    closed: closed ? String(closed) : '',
+    // Sign-in is required: no guest email field; the post sends them to sign in and back.
+    needsSignIn: cfg.requireAccount && !account,
     // Never render an email from the link for a signed-in person: the account
     // is the truth, the link is only a hint for guests.
     account: account ? { email: account.email || '' } : null,
@@ -297,8 +314,11 @@ export function view(cfg, { query, account = null, action = '', error = '' } = {
       detail: o.detail,
       kind: o.kind,
       // A pack named "$25" already says its price; do not print it twice.
-      price: o.kind === 'once' && o.name.trim() === money(o.unitCents, { currency: cfg.currency, short: true }) ? '' : money(o.unitCents, { currency: cfg.currency }),
-      unit: o.kind === 'plan' ? '/mo' : '',
+      price:
+        o.kind === 'once' && o.name.trim() === money(o.unitCents, { currency: cfg.currency, short: true })
+          ? ''
+          : money(o.kind === 'plan' && o.display === 'total' ? o.chargeCents : o.unitCents, { currency: cfg.currency }),
+      unit: o.kind !== 'plan' ? '' : o.display === 'total' ? (o.months === 1 ? '/ 1 month' : `/ ${o.months} months`) : '/mo',
       chargeCents: o.chargeCents,
       months: o.months,
       gets: o.gets,

@@ -244,6 +244,61 @@ test('the browser bundle is one file with no imports, and it loads', async () =>
   assert.equal(typeof mod.mountCheckout, 'function')
 })
 
+test('default preselects without the badge; display total leads with the term price; theme pins the scheme', () => {
+  const c = createCheckout({
+    site: 'x',
+    theme: 'light',
+    options: [
+      { id: 'a', name: '$5', price: 5 },
+      { id: 'b', name: '$10', price: 10, default: true },
+      { id: 'y', name: '1 year', price: 15, months: 12, display: 'total' },
+    ],
+    pay: async () => ({ url: '/p' }),
+  })
+  const html = c.html()
+  assert.match(html, /value="b" checked/)
+  assert.doesNotMatch(html, /Most popular/)
+  assert.match(html, /USD 15\.00<\/span><span class="pfc-option-unit">\/ 12 months/)
+  assert.match(html, /USD 1\.25 a month/)
+  assert.match(html, /data-theme="light"/)
+  assert.match(css, /:where\(\.pfc\[data-theme="dark"\]\)/)
+})
+
+test('sign-in required: no guest email field, and signInUrl matches what a signed-out POST does', async () => {
+  const c = plans({ requireAccount: true, signIn: '/login', page: '/checkout' })
+  const html = c.html({ query: 'plan=month' })
+  assert.doesNotMatch(html, /name="email"/)
+  assert.match(c.html({ account: { id: '1', email: 'me@x.co' } }), /me@x\.co/)
+  const url = c.signInUrl('plan=month&quantity=3&manage=team&junk=1')
+  assert.equal(decodeURIComponent(url), '/login?next=/checkout?option=month&quantity=3&audience=team')
+  const res = await c.POST(post({ option: 'month', quantity: '3', audience: 'team' }, { referer: 'https://example.com/checkout' }))
+  assert.equal(res.headers.get('location'), url)
+  assert.equal(plans().signInUrl('plan=month'), null)
+})
+
+test('notes, a closed state, and the site\'s own errors from pay()', async () => {
+  const c = plans({
+    errors: { rate_limited: 'Too many payments opened. Wait a minute and try again.', 'Bad Key!': 'ignored' },
+    pay: async () => {
+      throw Object.assign(new Error('429'), { code: 'rate_limited' })
+    },
+    onError() {},
+  })
+  const html = c.html({ notes: ['Balance $4.21', '<b>x</b>'], closed: 'Top-ups open soon.' })
+  assert.match(html, /<ul class="pfc-notes"><li>Balance \$4\.21<\/li><li>&lt;b&gt;x/)
+  assert.match(html, /class="pfc-closed" role="status">Top-ups open soon\./)
+  assert.match(html, /<button class="pfc-cta" type="submit" disabled>/)
+  const r = await c.handle({ option: 'year', audience: 'personal', email: 'a@b.co' })
+  assert.deepEqual(r, { ok: false, error: 'rate_limited' })
+  const res = await c.POST(post({ option: 'year', audience: 'personal', email: 'a@b.co' }, { accept: 'application/json' }))
+  assert.equal(res.status, 409)
+  assert.equal((await res.json()).message, 'Too many payments opened. Wait a minute and try again.')
+  assert.match(c.html({ query: 'error=rate_limited' }), /Too many payments opened/)
+  // an unknown code from pay() is still the generic message
+  const other = plans({ pay: async () => { throw Object.assign(new Error('x'), { code: 'nope' }) }, onError() {} })
+  assert.equal((await other.handle({ option: 'year', audience: 'personal', email: 'a@b.co' })).error, 'payment_unavailable')
+})
+
 test('a pack named for its price shows the price once', () => {
   const c = createCheckout({
     site: 'x',

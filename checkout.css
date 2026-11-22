@@ -52,6 +52,20 @@
     --pfc-panel-bg: #0b1020;
   }
 }
+:where(.pfc[data-theme="dark"]) {
+  --pfc-accent: #818cf8;
+  --pfc-accent-fg: #0b1020;
+  --pfc-fg: #f3f4f6;
+  --pfc-muted: #9ca3af;
+  --pfc-card: #111827;
+  --pfc-border: #374151;
+  --pfc-save-bg: #064e3b;
+  --pfc-save-fg: #a7f3d0;
+  --pfc-popular-bg: #3b2a6b;
+  --pfc-popular-fg: #ddd6fe;
+  --pfc-error: #fca5a5;
+  --pfc-panel-bg: #0b1020;
+}
 .pfc *,
 .pfc *::before,
 .pfc *::after {
@@ -287,6 +301,25 @@
   font-size: 0.78rem;
   text-align: center;
   text-wrap: balance;
+}
+.pfc-closed {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--pfc-border);
+  border-radius: var(--pfc-radius);
+  color: var(--pfc-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.pfc-notes {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pfc-muted);
+  font-size: 0.8rem;
+  text-align: center;
 }
 .pfc-compare {
   display: grid;

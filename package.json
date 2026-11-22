@@ -1,6 +1,6 @@
 {
   "name": "@profullstack/checkout",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "One focused checkout page for plans, credit packs and top-ups: prefilled from its link, annual plan preselected, seats, discount code, a value comparison and one button to CoinPay. HTML or React, zero dependencies.",
   "keywords": [
@@ -89,7 +89,7 @@
   "scripts": {
     "css": "node scripts/sync-css.js",
     "build": "node scripts/sync-css.js && node scripts/bundle-browser.js",
-    "test": "node scripts/bundle-browser.js && node --test",
+    "test": "npm run build --silent && node --test",
     "prepublishOnly": "npm run build && node --test"
   }
 }

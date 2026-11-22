@@ -140,8 +140,28 @@ export function createCheckout(config) {
     } catch (error) {
       if (typeof config.onError === 'function') config.onError(error, order)
       else console.error(`[checkout] ${cfg.site || 'site'}: pay() failed: ${error instanceof Error ? error.message : error}`)
-      return { ok: false, error: 'payment_unavailable' }
+      // pay() may throw { code } naming one of the site's own `errors`
+      // (rate limited, sales paused); anything else is the generic message.
+      const code = error && typeof error.code === 'string' && Object.hasOwn(config.errors || {}, error.code) && Object.hasOwn(cfg.errors, error.code) ? error.code : 'payment_unavailable'
+      return { ok: false, error: code }
     }
+  }
+
+  /**
+   * Where a signed-out visitor goes to sign in and come back to this page with
+   * their selection: the same URL a signed-out POST redirects to. For the
+   * page's GET. Null when no `signIn` is configured.
+   */
+  function signInUrl(query) {
+    if (!config.signIn) return null
+    const f = fields(query)
+    const qs = new URLSearchParams()
+    for (const key of ['option', 'quantity', 'audience', 'amount', 'code', 'source']) {
+      const value = key === 'option' ? (f.option ?? f.plan) : key === 'audience' ? (f.audience ?? f.manage) : f[key]
+      if (value) qs.set(key, String(value).slice(0, 64))
+    }
+    const next = `${config.page || '/'}${qs.size ? `?${qs}` : ''}`
+    return `${config.signIn}${config.signIn.includes('?') ? '&' : '?'}next=${encodeURIComponent(next)}`
   }
 
   /** The route handler: `export const POST = checkout.POST`. */
@@ -159,9 +179,9 @@ export function createCheckout(config) {
       if (error === 'sign_in_required' && config.signIn) {
         const next = backTo(request, config.page, { option: f.option, quantity: f.quantity, audience: f.audience, amount: f.amount, code: f.code, source: f.source })
         const signIn = `${config.signIn}${config.signIn.includes('?') ? '&' : '?'}next=${encodeURIComponent(next)}`
-        return wantsJson ? json({ ok: false, error, message: ERRORS[error], signIn }, 401) : redirect(signIn)
+        return wantsJson ? json({ ok: false, error, message: cfg.errors[error], signIn }, 401) : redirect(signIn)
       }
-      if (wantsJson) return json({ ok: false, error, message: ERRORS[error] }, status)
+      if (wantsJson) return json({ ok: false, error, message: cfg.errors[error] }, status)
       // Only a code goes back in the URL, never free text.
       return redirect(backTo(request, config.page, { option: f.option, quantity: f.quantity, audience: f.audience, amount: f.amount, code: error === 'invalid_code' ? '' : f.code, source: f.source, error }))
     }
@@ -170,7 +190,7 @@ export function createCheckout(config) {
     // internal one, and the browser's Origin is the public one.
     if (!sameSite(request, [...(config.origins || []), ...(config.siteUrl ? [config.siteUrl] : [])])) return fail('bad_origin', 403)
     const result = await handle(f, { request })
-    if (!result.ok) return fail(result.error, result.error === 'payment_unavailable' ? 502 : 400)
+    if (!result.ok) return fail(result.error, result.error === 'payment_unavailable' ? 502 : Object.hasOwn(ERRORS, result.error) ? 400 : 409)
     if (result.quote) return json({ ok: true, quote: result.quote })
     return wantsJson ? json({ ok: true, url: result.url }) : redirect(result.url)
   }
@@ -184,6 +204,7 @@ export function createCheckout(config) {
     html: (opts = {}) => toHtml(tree(view(cfg, { action: config.action || '', ...opts }))),
     /** Price fields without opening a payment. */
     quote: (input) => handle(input, { intent: 'quote' }),
+    signInUrl,
     handle,
     POST,
   }
