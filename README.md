@@ -147,6 +147,17 @@ Grant what was bought from `order.option` and `order.quantity`, to the `account_
 - `pay()` that throws shows "We could not open the payment page. Nothing was charged." and calls `onError`.
 - A code that takes the total to zero calls `free(order)` instead of `pay(order)` when you provide it.
 
+## Smaller options
+
+- `default: true` on an option preselects it without the "Most popular" badge (`popular: true` does both).
+- `display: 'total'` on a plan leads with the term total (`USD 15.00 / 12 months`, then "USD 1.25 a month") for sites that quote the whole term.
+- `theme: 'light'` or `'dark'` pins the colour scheme.
+- `errors: { rate_limited: 'Too many payments opened. Wait a minute.' }` adds your own messages; `pay()` throws an error with `code: 'rate_limited'` to show one. Anything else is the generic "could not open the payment page".
+- `checkout.view({ notes: ['Balance $4.21'] })` puts per-request lines under the button, and `closed: 'Top-ups open soon.'` shows a message and disables the button. Both are plain text.
+- `checkout.signInUrl(query)` is the URL a signed-out POST redirects to (sign in, then back to this page with the selection). Use it for the page's GET: `if (!user) redirect(checkout.signInUrl(query))`. With `requireAccount`, a signed-out page shows no email field.
+- Tier x term (Pro/Team, each monthly/yearly): build one `createCheckout` per tier, cached in a `Map`, on `/checkout/<tier>`; each tier's options are its terms.
+- With your own `pay()`, `order.source`, `order.code` and the rest are yours to pass on or drop; only the `coinpay()` adapter writes them to the payment metadata.
+
 ## Accounts and the same-site check
 
 - `account(request)` returns `{ id, email }` for the signed-in buyer, or null. `email` may be `''` when you do not keep one (the page then shows no "Buying as" line), and any extra keys you return ride along on `order.account` for your `pay()`.

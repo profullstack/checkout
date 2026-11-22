@@ -85,11 +85,14 @@ export function tree(v) {
     ),
     v.error ? h('p', { class: 'pfc-error', role: 'alert' }, v.error.message) : null,
     v.source ? h('input', { type: 'hidden', name: 'source', value: v.source }) : null,
+    v.closed ? h('p', { class: 'pfc-closed', role: 'status' }, v.closed) : null,
     v.account
       ? v.account.email
         ? h('p', { class: 'pfc-account' }, 'Buying as ', h('strong', null, v.account.email))
         : null
-      : h(
+      : v.needsSignIn
+        ? null
+        : h(
           'label',
           { class: 'pfc-field' },
           h('span', { class: 'pfc-label' }, 'Email'),
@@ -131,8 +134,9 @@ export function tree(v) {
       h('strong', { 'data-pfc-total': true }, v.total),
       h('span', { class: 'pfc-total-note', 'data-pfc-breakdown': true }, v.breakdown),
     ),
-    h('button', { class: 'pfc-cta', type: 'submit' }, v.cta),
+    h('button', { class: 'pfc-cta', type: 'submit', disabled: Boolean(v.closed) }, v.cta),
     v.guarantee || v.processor ? h('p', { class: 'pfc-assure' }, [v.guarantee, v.processor].filter(Boolean).join(' ')) : null,
+    v.notes && v.notes.length ? h('ul', { class: 'pfc-notes' }, v.notes.map((n) => h('li', null, n))) : null,
   )
 
   const c = v.compare
@@ -162,5 +166,5 @@ export function tree(v) {
     baseSeats: v.audiences.length ? null : v.seats,
   })
 
-  return h('section', { class: compare ? 'pfc pfc-split' : 'pfc', 'data-pfc': data }, form, compare)
+  return h('section', { class: compare ? 'pfc pfc-split' : 'pfc', 'data-pfc': data, 'data-theme': v.theme || undefined }, form, compare)
 }
