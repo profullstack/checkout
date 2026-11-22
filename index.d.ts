@@ -130,7 +130,12 @@ export interface CheckoutConfig {
   account?: (request: Request | null) => Promise<Account | null> | Account | null
   /** Refuse guests. With signIn, they are sent there and come back. */
   requireAccount?: boolean
-  signIn?: string
+  /** The sign-in URL (the return path is added as ?next=), or a function (nextPath) => url. */
+  signIn?: string | ((nextPath: string) => string)
+  /** The query parameter your sign-in page reads the return path from. Default "next". */
+  signInParam?: string
+  /** Refuse a post with no Origin header or Origin: null (the default lets those through). */
+  strictOrigin?: boolean
   /** The site's public URL. Set it behind a proxy, where Host is internal and the browser's Origin is not. */
   siteUrl?: string
   /** Extra origins allowed to post the form. */
