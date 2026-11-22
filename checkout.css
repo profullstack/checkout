@@ -82,6 +82,38 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   }
 }
+/* Embedded in a content page: the page's own column, left-aligned. */
+.pfc.pfc-embedded {
+  justify-items: start;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  padding: var(--pfc-pad, 0);
+}
+.pfc-embedded .pfc-head {
+  justify-items: start;
+  text-align: left;
+}
+.pfc-embedded .pfc-subtitle,
+.pfc-embedded .pfc-account,
+.pfc-embedded .pfc-assure,
+.pfc-embedded .pfc-notes {
+  text-align: left;
+}
+.pfc-embedded .pfc-total {
+  justify-content: flex-start;
+}
+.pfc-embedded .pfc-cta {
+  justify-self: start;
+}
+/* Site-wide fieldset/legend decoration stops here. */
+.pfc fieldset,
+.pfc legend {
+  background: none;
+}
+.pfc legend {
+  padding: 0;
+}
 .pfc-main {
   display: grid;
   gap: 1rem;

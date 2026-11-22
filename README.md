@@ -168,6 +168,24 @@ const handle = nodeHandler(checkout)
 
 Hono, Bun.serve and other web-standard servers use `checkout.POST(request)` directly; `assets()` works there too.
 
+## Embedded in a content page
+
+A premium or pricing page that explains the product and also sells it can carry the form inline, instead of sending the buyer to a separate page:
+
+```js
+createCheckout({
+  embedded: true,          // left-aligned, no outer padding
+  heading: 2,              // the page already has its <h1>; or title: false
+  signInCta: 'Sign in to join',
+  requireAccount: true,
+  signIn: '/login',
+  page: '/premium',
+  // ...
+})
+// in the route, when the server already knows the user:
+return checkout.POST(request, { account: user ? { id: user.id, email: user.email } : null })
+```
+
 ## Smaller options
 
 - `signIn` may be a function `(nextPath) => url` for sites with their own sign-in scheme, and `signInParam: 'return_to'` renames the return parameter.

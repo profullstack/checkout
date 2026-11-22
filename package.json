@@ -1,6 +1,6 @@
 {
   "name": "@profullstack/checkout",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "One focused checkout page for plans, credit packs and top-ups: prefilled from its link, annual plan preselected, seats, discount code, a value comparison and one button to CoinPay. HTML or React, zero dependencies.",
   "keywords": [

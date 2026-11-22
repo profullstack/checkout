@@ -80,7 +80,7 @@ export function tree(v) {
       'header',
       { class: 'pfc-head' },
       v.logo ? h('img', { class: 'pfc-logo', src: v.logo.src, alt: v.logo.alt, width: '56', height: '56' }) : null,
-      h('h1', { class: 'pfc-title' }, v.title),
+      v.heading !== 0 && v.title ? h(`h${v.heading || 1}`, { class: 'pfc-title' }, v.title) : null,
       v.subtitle ? h('p', { class: 'pfc-subtitle' }, v.subtitle) : null,
     ),
     v.error ? h('p', { class: 'pfc-error', role: 'alert' }, v.error.message) : null,
@@ -166,5 +166,5 @@ export function tree(v) {
     baseSeats: v.audiences.length ? null : v.seats,
   })
 
-  return h('section', { class: compare ? 'pfc pfc-split' : 'pfc', 'data-pfc': data, 'data-theme': v.theme || undefined }, form, compare)
+  return h('section', { class: ['pfc', compare ? 'pfc-split' : '', v.embedded ? 'pfc-embedded' : ''].filter(Boolean).join(' '), 'data-pfc': data, 'data-theme': v.theme || undefined }, form, compare)
 }

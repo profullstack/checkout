@@ -97,7 +97,14 @@ export type Pay = (order: Order, ctx: { request: Request | null }) => Promise<{ 
 
 export interface CheckoutConfig {
   site: string
-  title?: string
+  /** false for no title (a form embedded under the page's own heading). */
+  title?: string | false
+  /** The title's heading level, 1 to 6 (default 1), or false for none. */
+  heading?: 1 | 2 | 3 | 4 | 5 | 6 | false
+  /** Embedded in a content page: left-aligned, no outer padding. */
+  embedded?: boolean
+  /** The button label for a signed-out visitor when requireAccount is set ("Sign in to buy"). */
+  signInCta?: string
   subtitle?: string
   logo?: string | { src: string; alt?: string }
   currency?: string
@@ -190,7 +197,8 @@ export interface Checkout {
   /** The sign-in URL that returns to this page with the selection, for the page's GET. Null without `signIn`. */
   signInUrl(query?: FieldsInput): string | null
   handle(input: FieldsInput, ctx?: { request?: Request | null; account?: Account | null; intent?: 'quote' | '' }): Promise<HandleResult>
-  POST(request: Request): Promise<Response>
+  /** Pass `account` when your server already holds the signed-in user. */
+  POST(request: Request, ctx?: { account?: { id: string; email: string } | null }): Promise<Response>
 }
 
 export function createCheckout(config: CheckoutConfig): Checkout
