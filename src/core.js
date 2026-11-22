@@ -141,7 +141,7 @@ export function normalize(config) {
   return {
     site: String(config.site || ''),
     currency,
-    title: String(config.title || 'Checkout'),
+    title: config.title === false ? '' : String(config.title || 'Checkout'),
     subtitle: config.subtitle ? String(config.subtitle) : '',
     logo: config.logo ? { src: String(config.logo.src || config.logo), alt: String(config.logo.alt || '') } : null,
     audienceLabel: String(config.audienceLabel || 'Who is this for?'),
@@ -153,6 +153,12 @@ export function normalize(config) {
     hasDiscount: typeof config.discount === 'function',
     discountLabel: String(config.discountLabel || 'Have a discount code?'),
     cta: String(config.cta || 'Continue to payment'),
+    // The button label for a signed-out visitor when sign-in is required.
+    signInCta: config.signInCta ? String(config.signInCta) : '',
+    // The title's heading level (1-6), or 0 for no title: for a form embedded in a page that has its own <h1>.
+    heading: config.title === false || config.heading === false ? 0 : Math.min(6, Math.max(1, Number.parseInt(config.heading ?? 1, 10) || 1)),
+    // Embedded in a content page: left-aligned, no outer padding.
+    embedded: Boolean(config.embedded),
     guarantee: config.guarantee ? String(config.guarantee) : '',
     // processor: false drops the line (for a site where "or PayPal" is not always true).
     processor: config.processor === false ? '' : String(config.processor ?? 'Pay with crypto or PayPal. Payment is processed by CoinPay.'),
@@ -290,6 +296,8 @@ export function view(cfg, { query, account = null, action = '', error = '', note
     action,
     currency: cfg.currency,
     title: cfg.title,
+    heading: cfg.heading,
+    embedded: cfg.embedded,
     subtitle: cfg.subtitle,
     logo: cfg.logo,
     theme: cfg.theme,
@@ -341,7 +349,7 @@ export function view(cfg, { query, account = null, action = '', error = '', note
     code: sel.code,
     total: q.total,
     breakdown: q.breakdown,
-    cta: cfg.cta,
+    cta: cfg.requireAccount && !account && cfg.signInCta ? cfg.signInCta : cfg.cta,
     guarantee: cfg.guarantee,
     processor: cfg.processor,
     compare: cfg.compare

@@ -374,6 +374,38 @@ test('processor false, an empty custom amount, and quiet logging for the site\'s
   assert.match(css, /padding: var\(--pfc-pad, 2rem 1rem\)/)
 })
 
+test('embedded in a content page: heading level, layout class, sign-in label, account passed to POST', async () => {
+  const seen = []
+  const c = plans({
+    embedded: true,
+    heading: 2,
+    requireAccount: true,
+    signIn: '/login',
+    signInCta: 'Sign in to join',
+    page: '/premium?tab=join',
+    pay: async (o) => {
+      seen.push(o.account)
+      return { url: '/paid' }
+    },
+  })
+  const out = c.html()
+  assert.match(out, /<section class="pfc pfc-split pfc-embedded"/)
+  assert.match(out, /<h2 class="pfc-title">Get Example Pro<\/h2>/)
+  assert.doesNotMatch(out, /<h1/)
+  assert.match(out, />Sign in to join<\/button>/)
+  assert.match(c.html({ account: { id: '1', email: 'me@x.co' } }), />Continue to payment<\/button>/)
+  assert.doesNotMatch(plans({ title: false }).html(), /pfc-title/)
+  // a page path that already has a query keeps it
+  assert.equal(decodeURIComponent(c.signInUrl('plan=month')), '/login?next=/premium?tab=join&option=month')
+  // the server already knows the user: no account() call needed
+  const res = await c.POST(post({ option: 'year', audience: 'personal' }), { account: { id: 'u1', email: 'me@x.co' } })
+  assert.equal(res.headers.get('location'), '/paid')
+  assert.equal(seen[0].id, 'u1')
+  const markup = renderToStaticMarkup(createElement(Checkout, { view: c.view(), enhance: false }))
+  assert.match(markup, /<h2 class="pfc-title">/)
+  assert.match(css, /\.pfc\.pfc-embedded \{/)
+})
+
 test('a pack named for its price shows the price once', () => {
   const c = createCheckout({
     site: 'x',

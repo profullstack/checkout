@@ -169,12 +169,15 @@ export function createCheckout(config) {
       const value = key === 'option' ? (f.option ?? f.plan) : key === 'audience' ? (f.audience ?? f.manage) : f[key]
       if (value) qs.set(key, String(value).slice(0, 64))
     }
-    const next = `${config.page || '/'}${qs.size ? `?${qs}` : ''}`
+    const page = config.page || '/'
+    const next = `${page}${qs.size ? `${page.includes('?') ? '&' : '?'}${qs}` : ''}`
     return signInTo(next)
   }
 
   /** The route handler: `export const POST = checkout.POST`. */
-  async function POST(request) {
+  // `account` is for servers that already hold the signed-in user (a Hono
+  // context, an Express req): it skips config.account(request).
+  async function POST(request, { account = null } = {}) {
     const type = header(request, 'content-type') || ''
     const wantsJson = type.includes('application/json') || (header(request, 'accept') || '').includes('application/json')
     let input = {}
@@ -198,7 +201,7 @@ export function createCheckout(config) {
     // siteUrl is the public address: behind a proxy the Host header may be an
     // internal one, and the browser's Origin is the public one.
     if (!sameSite(request, [...(config.origins || []), ...(config.siteUrl ? [config.siteUrl] : [])], Boolean(config.strictOrigin))) return fail('bad_origin', 403)
-    const result = await handle(f, { request })
+    const result = await handle(f, { request, account })
     if (!result.ok) return fail(result.error, result.error === 'payment_unavailable' ? 502 : Object.hasOwn(ERRORS, result.error) ? 400 : 409)
     if (result.quote) return json({ ok: true, quote: result.quote })
     return wantsJson ? json({ ok: true, url: result.url }) : redirect(result.url)
