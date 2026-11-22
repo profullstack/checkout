@@ -217,6 +217,33 @@ test('React renders the same page as html()', () => {
   assert.match(markup, /<option value="team"[^>]*selected/)
 })
 
+test('a plan priced by its term total charges that total exactly', async () => {
+  const c = createCheckout({
+    site: 'x',
+    options: [
+      { id: 'year', name: 'Yearly', price: 50, months: 12, popular: true },
+      { id: 'month', name: 'Monthly', price: 5, months: 1 },
+    ],
+    pay: async (o) => ({ url: `/p/${o.totalCents}` }),
+  })
+  const html = c.html()
+  assert.match(html, /USD 4\.17/) // shown per month
+  assert.match(html, /Billed USD 50\.00 for 12 months/)
+  assert.match(html, /Save 17%/) // 50/12 against 5.00, on exact cents
+  assert.equal((await c.handle({ option: 'year', email: 'a@b.co' })).url, '/p/5000')
+  assert.equal((await c.handle({ option: 'month', email: 'a@b.co' })).order.option.months, 1)
+  assert.throws(() => createCheckout({ site: 'x', options: [{ id: 'a', monthly: 5, price: 50, months: 12 }], pay() {} }), /not both/)
+})
+
+test('the browser bundle is one file with no imports, and it loads', async () => {
+  const bundle = readFileSync(new URL('../dist/browser.js', import.meta.url), 'utf8')
+  assert.doesNotMatch(bundle, /\bimport\s*[{"']/)
+  assert.match(bundle, /data-pfc/)
+  // Importing it is the real check: a bad bundle is a SyntaxError here.
+  const mod = await import('../dist/browser.js')
+  assert.equal(typeof mod.mountCheckout, 'function')
+})
+
 test('a pack named for its price shows the price once', () => {
   const c = createCheckout({
     site: 'x',

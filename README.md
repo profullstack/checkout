@@ -57,7 +57,7 @@ export const checkout = createCheckout({
 })
 ```
 
-A plan is `monthly` USD for `months` months, charged once up front: the card shows `USD 15.00 /mo` and "Billed USD 180.00 for 12 months". Only write `guarantee: '30-day money-back guarantee.'` if it is true; there is no default.
+A plan is `monthly` USD for `months` months, charged once up front: the card shows `USD 15.00 /mo` and "Billed USD 180.00 for 12 months". When the real price is the term total, give that instead: `{ id: 'year', name: 'Yearly', price: 50, months: 12 }` charges exactly USD 50.00 and shows `USD 4.17 /mo`. Only write `guarantee: '30-day money-back guarantee.'` if it is true; there is no default.
 
 ## Credits and top-ups
 
@@ -110,7 +110,7 @@ ${checkout.html({ query: url.searchParams, account })}
 <script type="module" src="/checkout-browser.js"></script>`
 ```
 
-`checkout.css` is the stylesheet (also exported as the string `css`), and `@profullstack/checkout/browser` is the script. Leave the script out and the page still sells.
+`checkout.css` is the stylesheet (also exported as the string `css`), and `@profullstack/checkout/browser` is the script. Without a bundler, serve `@profullstack/checkout/browser.bundle.js` (`node_modules/@profullstack/checkout/dist/browser.js`): the same script as one file with no imports. Leave the script out and the page still sells.
 
 ## Link parameters
 

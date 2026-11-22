@@ -61,9 +61,14 @@ export function normalize(config) {
     if (!id || id === CUSTOM) throw new TypeError(`option id "${id}" is missing or reserved`)
     if (seen.has(id)) throw new TypeError(`duplicate option id "${id}"`)
     seen.add(id)
-    const plan = o.monthly != null
+    // A plan is priced per month ({ monthly, months }) or by its term total
+    // ({ price, months }). The total form is exact for prices that do not
+    // divide into whole cents: $50 a year is charged as $50.00, shown as $4.17/mo.
+    const plan = o.monthly != null || (o.months != null && Number(o.months) > 0)
     const months = plan ? Math.max(1, Number.parseInt(o.months ?? 1, 10)) : 0
-    const unitCents = toCents(plan ? o.monthly : o.price)
+    if (o.monthly != null && o.price != null) throw new TypeError(`option "${id}": give monthly or price, not both`)
+    const totalCents = plan && o.monthly == null ? toCents(o.price) : null
+    const unitCents = totalCents != null ? Math.round(totalCents / months) : toCents(plan ? o.monthly : o.price)
     return {
       id,
       name: String(o.name ?? id),
@@ -72,7 +77,7 @@ export function normalize(config) {
       unitCents,
       months,
       // What one unit of quantity costs today.
-      chargeCents: plan ? unitCents * months : unitCents,
+      chargeCents: totalCents != null ? totalCents : plan ? unitCents * months : unitCents,
       gets: o.gets != null ? String(o.gets) : '',
       badges: (o.badges || []).map(String),
       popular: Boolean(o.popular),
@@ -81,9 +86,11 @@ export function normalize(config) {
   })
 
   // "Save 50%" is computed from the real prices, never typed by hand.
-  const dearest = Math.max(0, ...options.filter((o) => o.kind === 'plan').map((o) => o.unitCents))
+  // Compared on exact cost per month, so a rounded display price cannot skew it.
+  const perMonth = (o) => o.chargeCents / o.months
+  const dearest = Math.max(0, ...options.filter((o) => o.kind === 'plan').map(perMonth))
   for (const o of options) {
-    o.savePercent = o.kind === 'plan' && dearest > o.unitCents ? Math.round((1 - o.unitCents / dearest) * 100) : 0
+    o.savePercent = o.kind === 'plan' && dearest > perMonth(o) ? Math.round((1 - perMonth(o) / dearest) * 100) : 0
     if (o.kind === 'plan' && !o.detail) {
       o.detail = o.months === 1 ? 'Billed for 1 month' : `Billed ${money(o.chargeCents, { currency })} for ${o.months} months`
     }

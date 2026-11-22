@@ -14,11 +14,17 @@ export interface Audience {
   seats?: Seats
 }
 
-/** A plan: `monthly` USD for `months` months, charged once up front. */
+/**
+ * A plan, charged once up front for its term. Price it per month
+ * (`monthly` x `months`) or by the term total (`price` for `months`); the
+ * total form is exact when the price does not divide into whole cents.
+ */
 export interface PlanOption {
   id: string
   name: string
-  monthly: Money
+  monthly?: Money
+  /** The whole term's price. Use with `months`, instead of `monthly`. */
+  price?: Money
   months?: number
   detail?: string
   popular?: boolean
