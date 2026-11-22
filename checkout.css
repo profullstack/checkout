@@ -1,0 +1,347 @@
+/* @profullstack/checkout. Theme it with the --pfc-* properties on .pfc or above. */
+.pfc {
+  --pfc-accent: #4f46e5;
+  --pfc-accent-fg: #ffffff;
+  --pfc-fg: #1f2937;
+  --pfc-muted: #6b7280;
+  --pfc-bg: transparent;
+  --pfc-card: #ffffff;
+  --pfc-border: #d1d5db;
+  --pfc-save-bg: #d1fae5;
+  --pfc-save-fg: #065f46;
+  --pfc-popular-bg: #ede9fe;
+  --pfc-popular-fg: #5b21b6;
+  --pfc-error: #b91c1c;
+  --pfc-panel-bg: #111827;
+  --pfc-panel-fg: #f9fafb;
+  --pfc-panel-muted: #9ca3af;
+  --pfc-radius: 0.5rem;
+  box-sizing: border-box;
+  display: grid;
+  gap: 2.5rem;
+  justify-items: center;
+  align-items: center;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  color: var(--pfc-fg);
+  background: var(--pfc-bg);
+  font: inherit;
+  line-height: 1.45;
+}
+@media (prefers-color-scheme: dark) {
+  .pfc:not([data-theme="light"]) {
+    --pfc-accent: #818cf8;
+    --pfc-accent-fg: #0b1020;
+    --pfc-fg: #f3f4f6;
+    --pfc-muted: #9ca3af;
+    --pfc-card: #111827;
+    --pfc-border: #374151;
+    --pfc-save-bg: #064e3b;
+    --pfc-save-fg: #a7f3d0;
+    --pfc-popular-bg: #3b2a6b;
+    --pfc-popular-fg: #ddd6fe;
+    --pfc-error: #fca5a5;
+    --pfc-panel-bg: #0b1020;
+  }
+}
+.pfc *,
+.pfc *::before,
+.pfc *::after {
+  box-sizing: border-box;
+}
+@media (min-width: 56rem) {
+  .pfc-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  }
+}
+.pfc-main {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 24rem;
+  margin: 0;
+}
+.pfc-head {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+}
+.pfc-logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.pfc-title {
+  margin: 0;
+  font-size: 2rem;
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.pfc-subtitle,
+.pfc-account {
+  margin: 0;
+  color: var(--pfc-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.pfc-error {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--pfc-error);
+  border-radius: var(--pfc-radius);
+  color: var(--pfc-error);
+  font-size: 0.9rem;
+}
+.pfc-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.pfc-field[hidden] {
+  display: none;
+}
+.pfc-label {
+  padding: 0;
+  font-size: 0.9rem;
+}
+.pfc-field input,
+.pfc-field select,
+.pfc-discount input,
+.pfc-amount input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--pfc-border);
+  border-radius: var(--pfc-radius);
+  background: var(--pfc-card);
+  color: inherit;
+  font: inherit;
+}
+.pfc-options {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pfc-options > legend {
+  margin-bottom: 0.9rem;
+}
+.pfc-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--pfc-border);
+  border-radius: var(--pfc-radius);
+  background: var(--pfc-card);
+  cursor: pointer;
+}
+.pfc-option > input[type="radio"] {
+  margin: 0;
+  accent-color: var(--pfc-accent);
+}
+.pfc-option:focus-within {
+  outline: 2px solid var(--pfc-accent);
+  outline-offset: 2px;
+}
+/* Where :has() works the whole card is the radio; elsewhere the dot stays. */
+@supports selector(:has(*)) {
+  .pfc-option {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .pfc-option > input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pfc-option:has(> input:checked) {
+    border-color: var(--pfc-accent);
+    box-shadow: 0 0 0 1px var(--pfc-accent);
+  }
+  .pfc-main:has(select[name="audience"]):not(:has(select[name="audience"] option[data-seats]:checked)) .pfc-seats {
+    display: none;
+  }
+}
+.pfc-badges {
+  position: absolute;
+  top: -0.7rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.4rem;
+}
+.pfc-badge {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--pfc-popular-bg);
+  color: var(--pfc-popular-fg);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.pfc-badge-save {
+  background: var(--pfc-save-bg);
+  color: var(--pfc-save-fg);
+}
+.pfc-option-text,
+.pfc-option-price {
+  display: grid;
+  gap: 0.1rem;
+}
+.pfc-option-price {
+  justify-items: end;
+  text-align: right;
+}
+.pfc-option-detail,
+.pfc-option-unit,
+.pfc-option-gets {
+  color: var(--pfc-muted);
+  font-size: 0.8rem;
+}
+.pfc-amount {
+  grid-template-columns: auto 6.5rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pfc-amount-currency {
+  color: var(--pfc-muted);
+  font-size: 0.8rem;
+}
+.pfc-discount {
+  justify-self: end;
+  width: 100%;
+  font-size: 0.9rem;
+}
+.pfc-discount > summary {
+  color: var(--pfc-muted);
+  text-align: right;
+  cursor: pointer;
+  list-style: none;
+}
+.pfc-discount > summary::-webkit-details-marker {
+  display: none;
+}
+.pfc-discount > input {
+  margin-top: 0.5rem;
+}
+.pfc-discount-note {
+  min-height: 1.2em;
+  margin: 0.3rem 0 0;
+  color: var(--pfc-muted);
+  font-size: 0.8rem;
+}
+.pfc-discount-note[data-state="bad"] {
+  color: var(--pfc-error);
+}
+.pfc-total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  align-items: baseline;
+  justify-content: center;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.pfc-total-label,
+.pfc-total-note {
+  color: var(--pfc-muted);
+}
+.pfc-total-note {
+  font-size: 0.8rem;
+}
+.pfc-cta {
+  justify-self: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.4rem;
+  border: 0;
+  border-radius: var(--pfc-radius);
+  background: var(--pfc-accent);
+  color: var(--pfc-accent-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pfc-cta:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.pfc-cta:focus-visible {
+  outline: 2px solid var(--pfc-accent);
+  outline-offset: 3px;
+}
+.pfc-assure {
+  margin: 0;
+  color: var(--pfc-muted);
+  font-size: 0.78rem;
+  text-align: center;
+  text-wrap: balance;
+}
+.pfc-compare {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 37rem;
+  padding: 2rem;
+  border-radius: calc(var(--pfc-radius) * 1.5);
+  background: var(--pfc-panel-bg);
+  background: linear-gradient(200deg, #374151 0%, var(--pfc-panel-bg) 45%);
+  color: var(--pfc-panel-fg);
+}
+.pfc-compare-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+.pfc-compare-list {
+  display: grid;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pfc-compare-list li,
+.pfc-compare-ours {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+}
+.pfc-compare-price {
+  white-space: nowrap;
+}
+.pfc-compare-total {
+  margin: 0;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--pfc-panel-fg);
+  font-size: 1.25rem;
+  text-align: right;
+}
+.pfc-compare-ours strong {
+  font-size: 1.25rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pfc-compare-heading {
+  margin: 1rem 0 0;
+  font-weight: 700;
+}
+.pfc-compare-body {
+  margin: -0.75rem 0 0;
+}
+.pfc-compare-footnote {
+  margin: 0;
+  color: var(--pfc-panel-muted);
+  font-size: 0.78rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pfc-option,
+  .pfc-cta {
+    transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s;
+  }
+}
