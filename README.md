@@ -1,0 +1,161 @@
+# @profullstack/checkout
+
+One focused checkout page for plans, credit packs and top-ups. The buyer lands on a page that is already filled in from its link, sees the best option preselected, and has one button to press.
+
+What the page does:
+
+- **Prefilled from the link.** `?plan=year&quantity=3&manage=team&email=...&source=billing` opens with that plan, three seats and the email in place. A stale link still opens a working page.
+- **Who is this for.** An audience select ("Myself only" / "My team"); the seat field shows only for the audience that buys seats.
+- **Option cards.** Plans or one-off amounts as a radio group. The popular one is preselected. "Save 50%" is computed from the real prices, never typed.
+- **Discount code**, collapsed until asked for, checked on the server.
+- **One button**, with the amount due today above it and a short reassurance line below.
+- **A comparison panel** beside the form: what the alternatives add up to, and what this costs.
+
+It works as a plain HTML form (a post, then a 303 to the payment page). A small script adds the live total. Prices are integer cents and are worked out on the server; the browser never decides what is charged. Zero dependencies. Payment goes through [CoinPay](https://coinpayportal.com) checkout sessions (any coin the business takes, or PayPal), or through any `pay()` you write.
+
+```sh
+npm install @profullstack/checkout
+```
+
+## Plans
+
+```js
+// lib/checkout.js
+import { coinpay, createCheckout } from '@profullstack/checkout'
+
+export const checkout = createCheckout({
+  site: 'example.com',
+  title: 'Get Example Pro',
+  subtitle: 'Pick a plan.',
+  action: '/api/checkout',
+  page: '/checkout',
+  audienceLabel: 'Who are you upgrading?',
+  audiences: [
+    { id: 'personal', label: 'Myself only' },
+    { id: 'team', label: 'My team', seats: { min: 2, max: 100, default: 3 } },
+  ],
+  options: [
+    { id: 'year', name: '1-Year Plan', monthly: 15, months: 12, popular: true },
+    { id: 'month', name: '1-Month Plan', monthly: 30, months: 1 },
+  ],
+  discount: async (code) => (code === 'LAUNCH' ? { percent: 20 } : null),
+  compare: {
+    unit: '/y',
+    items: [
+      { label: 'Tool A', price: 48 },
+      { label: 'Tool B', price: 120 },
+    ],
+    ours: { label: 'Both, in one place', price: 180 },
+  },
+  account: async (request) => getSignedInUser(request), // { id, email } or null
+  pay: coinpay({
+    apiKey: () => process.env.COINPAY_API_KEY,
+    property: 'example.com',
+    successUrl: 'https://example.com/billing?paid=1',
+    cancelUrl: 'https://example.com/checkout',
+  }),
+})
+```
+
+A plan is `monthly` USD for `months` months, charged once up front: the card shows `USD 15.00 /mo` and "Billed USD 180.00 for 12 months". Only write `guarantee: '30-day money-back guarantee.'` if it is true; there is no default.
+
+## Credits and top-ups
+
+```js
+export const topup = createCheckout({
+  site: 'example.com',
+  title: 'Add credit',
+  action: '/api/topup',
+  options: [
+    { id: '10', name: '$10', price: 10 },
+    { id: '25', name: '$25', price: 25, popular: true, gets: 'about 5M tokens' },
+    { id: '100', name: '$100', price: 100 },
+  ],
+  custom: { min: 5, max: 5000, default: 50 }, // "Other amount"
+  requireAccount: true,
+  signIn: '/login',
+  account,
+  pay,
+})
+```
+
+## The page
+
+Next (a server component):
+
+```jsx
+import '@profullstack/checkout/checkout.css'
+import { Checkout } from '@profullstack/checkout/react'
+import { checkout } from '@/lib/checkout'
+
+export const dynamic = 'force-dynamic'
+
+export default async function Page({ searchParams }) {
+  const account = await getSignedInUser()
+  return <Checkout view={checkout.view({ query: await searchParams, account })} />
+}
+```
+
+```js
+// app/api/checkout/route.js
+import { checkout } from '@/lib/checkout'
+export const POST = checkout.POST
+```
+
+Anything else (Hono, Express, a static server):
+
+```js
+const html = `<link rel="stylesheet" href="/checkout.css">
+${checkout.html({ query: url.searchParams, account })}
+<script type="module" src="/checkout-browser.js"></script>`
+```
+
+`checkout.css` is the stylesheet (also exported as the string `css`), and `@profullstack/checkout/browser` is the script. Leave the script out and the page still sells.
+
+## Link parameters
+
+| Parameter | Does |
+| --- | --- |
+| `option` or `plan` | preselects that option (`custom` for the typed amount) |
+| `quantity` | seats; a number above one also selects the audience that takes seats |
+| `audience` or `manage` | preselects the audience |
+| `amount` | fills the custom amount |
+| `code` | opens the discount field with the code in it |
+| `email` | fills the email for a guest; ignored when someone is signed in |
+| `source` | passed through to the order and the payment metadata |
+
+The link is a hint. Who is paying comes from `account(request)`, never from the URL.
+
+## After payment
+
+`coinpay()` puts the order in the session metadata, and CoinPay sends it back on the webhook:
+
+```js
+import { readOrder } from '@profullstack/checkout'
+
+const order = readOrder(event.data.metadata)
+// { option: 'year', kind: 'plan', months: 12, quantity: 3, totalCents: 54000, audience: 'team', code: '', source: 'billing' }
+```
+
+Grant what was bought from `order.option` and `order.quantity`, to the `account_id` on the webhook. Verify the webhook signature first (`@profullstack/coinpay-onboard` has `verifyWebhook` and `readWebhook`).
+
+## Rules it keeps
+
+- The form may only be posted from its own site (`origins: [...]` adds more).
+- A failed post goes back to the page with `?error=<code>`: a code from a fixed list, never text from the request.
+- A signed-in buyer cannot be charged to another email by editing the link or the form.
+- `pay()` that throws shows "We could not open the payment page. Nothing was charged." and calls `onError`.
+- A code that takes the total to zero calls `free(order)` instead of `pay(order)` when you provide it.
+
+## Theme
+
+Set any of these on `.pfc` or an ancestor: `--pfc-accent`, `--pfc-accent-fg`, `--pfc-fg`, `--pfc-muted`, `--pfc-card`, `--pfc-border`, `--pfc-panel-bg`, `--pfc-panel-fg`, `--pfc-radius`. It follows `prefers-color-scheme`; `data-theme="light"` on `.pfc` pins it light.
+
+## Try it
+
+```sh
+node scripts/demo.js   # http://127.0.0.1:4173/ and /topup, code HALF
+npm test
+```
+
+MIT
